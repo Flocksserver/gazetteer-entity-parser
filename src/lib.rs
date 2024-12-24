@@ -104,6 +104,5 @@ mod utils;
 pub use data::{EntityValue, Gazetteer, ParsedValue, ResolvedValue};
 pub use parser::*;
 pub use parser_builder::*;
-pub mod errors;
 #[macro_use]
 pub mod macros;

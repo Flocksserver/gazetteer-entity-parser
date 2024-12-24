@@ -1,9 +1,8 @@
 use crate::data::Gazetteer;
-use crate::errors::*;
 use crate::parser::{LicenseInfo, Parser};
 use crate::EntityValue;
-use failure::format_err;
 use serde::{Deserialize, Serialize};
+use anyhow::*;
 
 /// Struct exposing a builder allowing to configure and build a Parser
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]

@@ -4,15 +4,14 @@ use std::collections::{BinaryHeap, HashSet};
 use std::fs;
 use std::ops::Range;
 use std::path::Path;
+use anyhow::*;
 
-use failure::{format_err, ResultExt};
 use fnv::{FnvHashMap, FnvHashSet};
 use rmp_serde::{from_read, Serializer};
 use serde::{Deserialize, Serialize};
 
 use crate::constants::*;
 use crate::data::EntityValue;
-use crate::errors::*;
 use crate::parser_registry::ParserRegistry;
 use crate::utils::{check_threshold, whitespace_tokenizer};
 use crate::ParsedValue;
@@ -172,27 +171,27 @@ impl Parser {
     /// Dump the parser to a folder
     pub fn dump<P: AsRef<Path>>(&self, folder_name: P) -> Result<()> {
         fs::create_dir(folder_name.as_ref())
-            .with_context(|_| format_err!("Error when creating persisting directory"))?;
+            .with_context(|| format_err!("Error when creating persisting directory"))?;
 
         let config = self.get_parser_config();
 
         let writer = fs::File::create(folder_name.as_ref().join(METADATA_FILENAME))
-            .with_context(|_| format_err!("Error when creating metadata file"))?;
+            .with_context(|| format_err!("Error when creating metadata file"))?;
 
         serde_json::to_writer(writer, &config)
-            .with_context(|_| format_err!("Error when serializing the parser's metadata"))?;
+            .with_context(|| format_err!("Error when serializing the parser's metadata"))?;
 
         let parser_path = folder_name.as_ref().join(config.parser_filename);
         let mut writer = fs::File::create(parser_path)
-            .with_context(|_| format_err!("Error when creating the parser file"))?;
+            .with_context(|| format_err!("Error when creating the parser file"))?;
 
         self.serialize(&mut Serializer::new(&mut writer))
-            .with_context(|_| format_err!("Error when serializing the parser"))?;
+            .with_context(|| format_err!("Error when serializing the parser"))?;
 
         if let Some(license_info) = &self.license_info {
             let license_path = folder_name.as_ref().join(&license_info.filename);
             fs::write(license_path, &license_info.content)
-                .with_context(|_| format_err!("Error when writing the license"))?
+                .with_context(|| format_err!("Error when writing the license"))?
         }
 
         Ok(())
@@ -202,17 +201,17 @@ impl Parser {
     pub fn from_folder<P: AsRef<Path>>(folder_name: P) -> Result<Parser> {
         let metadata_path = folder_name.as_ref().join(METADATA_FILENAME);
         let metadata_file = fs::File::open(metadata_path)
-            .with_context(|_| format_err!("Error when opening the metadata file"))?;
+            .with_context(|| "Error when opening the metadata file".to_string())?;
 
         let config: ParserConfig = serde_json::from_reader(metadata_file)
-            .with_context(|_| format_err!("Error when deserializing the metadata"))?;
+            .with_context(|| "Error when deserializing the metadata".to_string())?;
 
         let parser_path = folder_name.as_ref().join(config.parser_filename);
         let reader = fs::File::open(parser_path)
-            .with_context(|_| format_err!("Error when opening the parser file"))?;
+            .with_context(|| "Error when opening the parser file".to_string())?;
 
         Ok(from_read(reader)
-            .with_context(|_| format_err!("Error when deserializing the parser"))?)
+            .with_context(|| "Error when deserializing the parser")?)
     }
 }
 
@@ -624,7 +623,6 @@ fn group_matches(
 
 #[cfg(test)]
 mod tests {
-    use failure::ResultExt;
     use tempfile::tempdir;
 
     use crate::data::*;
@@ -680,7 +678,7 @@ mod tests {
         // check content of metadata
         let metadata_path = tdir.as_ref().join("parser").join(METADATA_FILENAME);
         let metadata_file = fs::File::open(&metadata_path)
-            .with_context(|_| format!("Cannot open metadata file {:?}", metadata_path))
+            .with_context(|| format!("Cannot open metadata file {:?}", metadata_path))
             .unwrap();
         let config: ParserConfig = serde_json::from_reader(metadata_file).unwrap();
 
